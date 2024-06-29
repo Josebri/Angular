@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+      "target": "ES2022",
+      "useDefineForClassFields": false,
+      "module": "ESNext",
+      "strict": true,
+      "esModuleInterop": true,
+      "skipLibCheck": true,
+      "forceConsistentCasingInFileNames": true,
+      "allowSyntheticDefaultImports": true,
+      "moduleResolution": "node",
+      "resolveJsonModule": true,
+      "isolatedModules": true,
+      "experimentalDecorators": true,
+      "emitDecoratorMetadata": true,
+      "strictNullChecks": true
+    },
+    "include": [
+      "src/**/*.ts",
+      "server.ts"
+    ]
+  }
+  
