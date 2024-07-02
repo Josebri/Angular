@@ -1,51 +1,35 @@
 import { Component } from '@angular/core';
-import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
-import { DataService } from '../services/data.service';
+import { Router } from '@angular/router'
+import { AuthService } from '../services/auth.service';
 
 @Component({
   selector: 'app-register',
   templateUrl: './register.component.html',
-  styleUrls: ['./register.component.css'],
-  standalone: true,
-  imports: [ReactiveFormsModule, RouterModule]
+  styleUrls: ['./register.component.css']
 })
 export class RegisterComponent {
-  registerForm: FormGroup;
+  errorMessage: string = '';
 
-  constructor(
-    private fb: FormBuilder,
-    private router: Router,
-    private dataService: DataService
-  ) {
-    this.registerForm = this.fb.group({
-      username: ['', Validators.required],
-      email: ['', [Validators.required, Validators.email]],
-      phone: ['', Validators.required],
-      profile: ['', Validators.required],
-      password: ['', Validators.required]
-    });
-  }
+  constructor(private authService: AuthService, private router: Router) {}
 
-  async onSubmit(): Promise<void> {
-    if (this.registerForm.valid) {
-      try {
-        const response = await this.dataService.register(
-          this.registerForm.value.username,
-          this.registerForm.value.email,
-          this.registerForm.value.phone,
-          this.registerForm.value.profile,
-          this.registerForm.value.password
-        );
-        console.log('Registration successful', response);
-        this.router.navigate(['/login']); // Redirigir a la página de login después del registro exitoso
-      } catch (error) {
-        console.error('Registration failed', error);
-      }
+  async register(event: Event) {
+    event.preventDefault();
+    const target = event.target as HTMLFormElement;
+    const username = (target.querySelector('#username') as HTMLInputElement).value;
+    const email = (target.querySelector('#email') as HTMLInputElement).value;
+    const phone = (target.querySelector('#phone') as HTMLInputElement).value;
+    const password = (target.querySelector('#password') as HTMLInputElement).value;
+
+    try {
+      const response = await this.authService.register({ username, email, phone, password });
+      // Handle registration success (e.g., navigate to login page)
+      this.router.navigate(['/login']);
+    } catch (error) {
+      this.errorMessage = 'Registration failed. Please try again.';
     }
   }
 
-  goBack(): void {
+  goToLogin() {
     this.router.navigate(['/login']);
   }
 }

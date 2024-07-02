@@ -1,27 +1,26 @@
-<div>
-    <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
-      <div>
-        <label for="username">Username</label>
-        <input id="username" formControlName="username" type="text">
-      </div>
-      <div>
-        <label for="email">Email</label>
-        <input id="email" formControlName="email" type="email">
-      </div>
-      <div>
-        <label for="password">Password</label>
-        <input id="password" formControlName="password" type="password">
-      </div>
-      <div>
-        <label for="phone">Phone</label>
-        <input id="phone" formControlName="phone" type="text">
-      </div>
-      <div>
-        <label for="profile">Profile</label>
-        <input id="profile" formControlName="profile" type="text">
-      </div>
-      <button type="submit">Register</button>
-    </form>
-    <button (click)="goBack()">Back to Login</button>
-  </div>
+<div class="container">
+    <div class="register-form">
+      <h2>Register</h2>
+      <form (submit)="register($event)">
+        <div class="form-group">
+          <label for="username">Username:</label>
+          <input type="text" id="username" required />
+        </div>
+        <div class="form-group">
+          <label for="email">Email:</label>
+          <input type="email" id="email" required />
+        </div>
+        <div class="form-group">
+          <label for="phone">Phone:</label>
+          <input type="tel" id="phone" required />
+        </div>
+        <div class="form-group">
+          <label for="password">Password:</label>
+          <input type="password" id="password" required minlength="8" />
+        </div>
+        <button type="submit">Register</button>
+      </form>
+      <button (click)="goToLogin()">Back to Login</button>
+      <div *ngIf="errorMessage" class="error-message">{{ errorMessage }}</div>
+    </div>
   
