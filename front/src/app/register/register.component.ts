@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { Router } from '@angular/router'
+import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
 @Component({
@@ -19,13 +19,19 @@ export class RegisterComponent {
     const email = (target.querySelector('#email') as HTMLInputElement).value;
     const phone = (target.querySelector('#phone') as HTMLInputElement).value;
     const password = (target.querySelector('#password') as HTMLInputElement).value;
+    const profile = (target.querySelector('#profile') as HTMLInputElement).value;
+
+    const user = { username, email, phone, password, profile };
 
     try {
-      const response = await this.authService.register({ username, email, phone, password });
-      // Handle registration success (e.g., navigate to login page)
+      await this.authService.register(user);
       this.router.navigate(['/login']);
-    } catch (error) {
-      this.errorMessage = 'Registration failed. Please try again.';
+    } catch (error: any) {
+      if (error instanceof Error) {
+        this.errorMessage = error.message;
+      } else {
+        this.errorMessage = 'Registration failed. Please try again.';
+      }
     }
   }
 

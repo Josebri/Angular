@@ -9,6 +9,7 @@ import { AuthService } from '../services/auth.service';
 })
 export class RecoverPasswordComponent {
   errorMessage: string = '';
+  successMessage: string = '';
 
   constructor(private authService: AuthService, private router: Router) {}
 
@@ -18,11 +19,14 @@ export class RecoverPasswordComponent {
     const email = (target.querySelector('#email') as HTMLInputElement).value;
 
     try {
-      const response = await this.authService.recoverPassword(email);
-      // Handle successful password recovery (e.g., show a success message)
-      this.router.navigate(['/login']);
-    } catch (error) {
-      this.errorMessage = 'Password recovery failed. Please try again.';
+      await this.authService.recoverPassword(email);
+      this.successMessage = 'A password recovery email has been sent.';
+    } catch (error: any) {
+      if (error instanceof Error) {
+        this.errorMessage = error.message;
+      } else {
+        this.errorMessage = 'Password recovery failed. Please try again.';
+      }
     }
   }
 
