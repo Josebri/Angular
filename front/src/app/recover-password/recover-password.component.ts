@@ -1,5 +1,5 @@
+// En RecoverPasswordComponent
 import { Component } from '@angular/core';
-import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 
 @Component({
@@ -8,29 +8,21 @@ import { AuthService } from '../services/auth.service';
   styleUrls: ['./recover-password.component.css']
 })
 export class RecoverPasswordComponent {
+
+  email: string = '';
   errorMessage: string = '';
   successMessage: string = '';
 
-  constructor(private authService: AuthService, private router: Router) {}
+  constructor(private authService: AuthService) {}
 
-  async recoverPassword(event: Event) {
-    event.preventDefault();
-    const target = event.target as HTMLFormElement;
-    const email = (target.querySelector('#email') as HTMLInputElement).value;
-
+  async recoverPassword() {
     try {
-      await this.authService.recoverPassword(email);
-      this.successMessage = 'A password recovery email has been sent.';
-    } catch (error: any) {
-      if (error instanceof Error) {
-        this.errorMessage = error.message;
-      } else {
-        this.errorMessage = 'Password recovery failed. Please try again.';
-      }
-    }
-  }
+      console.log('Debug: Attempting to recover password for email:', this.email); // Console.log de depuración
 
-  goToLogin() {
-    this.router.navigate(['/login']);
+      await this.authService.recoverPassword(this.email);
+      this.successMessage = 'Password recovery email sent';
+    } catch (error: any) {
+      this.errorMessage = error.message;
+    }
   }
 }

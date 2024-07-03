@@ -1,0 +1,12 @@
+<div>
+    <h2>Unlock User</h2>
+    <form (submit)="unlockUser()">
+      <label for="newPassword">New Password:</label>
+      <input type="password" id="newPassword" name="newPassword" required>
+  
+      <button type="submit">Unlock User</button>
+    </form>
+    <div *ngIf="errorMessage" class="error-message">{{ errorMessage }}</div>
+    <div *ngIf="successMessage" class="success-message">{{ successMessage }}</div>
+  </div>
+  

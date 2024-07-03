@@ -23,10 +23,10 @@ app.use(cors());
 // Middleware de autenticación
 const authenticate = (req, res, next) => {
   const authHeader = req.headers.authorization;
-  
+
   if (authHeader) {
     const token = authHeader.split(' ')[1];
-    
+
     jwt.verify(token, SECRET_KEY, (err, user) => {
       if (err) {
         return res.status(403).json({ message: 'Token verification failed', error: err.message });
@@ -118,7 +118,6 @@ app.post('/login', async (req, res) => {
       { expiresIn: '1h' }
     );
 
-    console.log('Generated token:', token);
     res.json({ token });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -185,6 +184,25 @@ app.post('/reset-password', async (req, res) => {
     res.json({ message: 'Password updated successfully' });
   } catch (error) {
     res.status(400).json({ error: 'Invalid or expired token' });
+  }
+});
+
+// Desbloquear usuario
+app.post('/admin/unblock-user', authenticate, async (req, res) => {
+  if (req.user.profile !== 'admin') {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  const { userId } = req.body;
+
+  try {
+    await pool.query(
+      'UPDATE users SET is_blocked = FALSE, attempts = 3 WHERE id = $1',
+      [userId]
+    );
+    res.json({ message: 'User unblocked successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 });
 
@@ -326,51 +344,70 @@ app.delete('/admin/locations/:id', authenticate, async (req, res) => {
   }
 });
 
-// Añadir artículo al carrito
+// Añadir producto al carrito
 app.post('/cart', authenticate, async (req, res) => {
-  const userId = req.user.id;
   const { productId, quantity } = req.body;
+  const userId = req.user.id;
 
   try {
-    const productResult = await pool.query('SELECT * FROM products WHERE id = $1', [productId]);
+    const cartResult = await pool.query(
+      'SELECT * FROM carts WHERE user_id = $1 AND status = $2',
+      [userId, 'active']
+    );
 
-    if (productResult.rows.length === 0) {
-      return res.status(400).json({ error: 'Product not found' });
-    }
+    let cartId;
 
-    const cartResult = await pool.query('SELECT * FROM carts WHERE user_id = $1 AND product_id = $2', [userId, productId]);
-
-    if (cartResult.rows.length > 0) {
-      const updatedCart = await pool.query(
-        'UPDATE carts SET quantity = quantity + $1 WHERE user_id = $2 AND product_id = $3 RETURNING *',
-        [quantity, userId, productId]
-      );
-      res.json(updatedCart.rows[0]);
-    } else {
+    if (cartResult.rows.length === 0) {
       const newCart = await pool.query(
-        'INSERT INTO carts (user_id, product_id, quantity) VALUES ($1, $2, $3) RETURNING *',
-        [userId, productId, quantity]
+        'INSERT INTO carts (user_id, status) VALUES ($1, $2) RETURNING *',
+        [userId, 'active']
       );
-      res.status(201).json(newCart.rows[0]);
+      cartId = newCart.rows[0].id;
+    } else {
+      cartId = cartResult.rows[0].id;
     }
+
+    const newItem = await pool.query(
+      'INSERT INTO cart_items (cart_id, product_id, quantity) VALUES ($1, $2, $3) RETURNING *',
+      [cartId, productId, quantity]
+    );
+    res.status(201).json(newItem.rows[0]);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
+});
+
+// Obtener productos del carrito
+app.get('/cart', authenticate, async (req, res) => {
+  const userId = req.user.id;
+
+  try {
+    const cartResult = await pool.query(
+      'SELECT * FROM carts WHERE user_id = $1 AND status = $2',
+      [userId, 'active']
+    );
+
+    if (cartResult.rows.length === 0) {
+      return res.json([]);
+    }
+
+    const cartId = cartResult.rows[0].id;
+    const cartItems = await pool.query(
+      'SELECT * FROM cart_items WHERE cart_id = $1',
+      [cartId]
+    );
+    res.json(cartItems.rows);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// Eliminar artículo del carrito
-app.delete('/cart/:id', authenticate, async (req, res) => {
-  const userId = req.user.id;
-  const { id } = req.params;
+// Eliminar producto del carrito
+app.delete('/cart/:itemId', authenticate, async (req, res) => {
+  const { itemId } = req.params;
 
   try {
-    const cartResult = await pool.query('SELECT * FROM carts WHERE id = $1 AND user_id = $2', [id, userId]);
-
-    if (cartResult.rows.length === 0) {
-      return res.status(400).json({ error: 'Item not found in cart' });
-    }
-
-    await pool.query('DELETE FROM carts WHERE id = $1 AND user_id = $2', [id, userId]);
+    await pool.query('DELETE FROM cart_items WHERE id = $1', [itemId]);
     res.json({ message: 'Item removed from cart' });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -382,46 +419,27 @@ app.post('/checkout', authenticate, async (req, res) => {
   const userId = req.user.id;
 
   try {
-    const cartResult = await pool.query('SELECT * FROM carts WHERE user_id = $1', [userId]);
+    const cartResult = await pool.query(
+      'SELECT * FROM carts WHERE user_id = $1 AND status = $2',
+      [userId, 'active']
+    );
 
     if (cartResult.rows.length === 0) {
-      return res.status(400).json({ error: 'Cart is empty' });
+      return res.status(400).json({ error: 'No active cart found' });
     }
 
-    let totalAmount = 0;
+    const cartId = cartResult.rows[0].id;
+    await pool.query(
+      'UPDATE carts SET status = $1 WHERE id = $2',
+      ['completed', cartId]
+    );
 
-    for (let item of cartResult.rows) {
-      const productResult = await pool.query('SELECT * FROM products WHERE id = $1', [item.product_id]);
-
-      if (productResult.rows.length > 0) {
-        totalAmount += productResult.rows[0].price * item.quantity;
-      }
-    }
-
-    // Simulación de proceso de pago siempre exitoso
-    await pool.query('BEGIN');
-
-    for (let item of cartResult.rows) {
-      await pool.query('UPDATE products SET quantity = quantity - $1 WHERE id = $2', [item.quantity, item.product_id]);
-      await pool.query('INSERT INTO orders (user_id, product_id, quantity, total_price) VALUES ($1, $2, $3, $4)', [
-        userId,
-        item.product_id,
-        item.quantity,
-        item.quantity * item.price,
-      ]);
-    }
-
-    await pool.query('DELETE FROM carts WHERE user_id = $1', [userId]);
-
-    await pool.query('COMMIT');
-    res.json({ message: 'Payment processed successfully', totalAmount });
+    res.json({ message: 'Payment processed successfully' });
   } catch (error) {
-    await pool.query('ROLLBACK');
     res.status(500).json({ error: error.message });
   }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+app.listen(3000, () => {
+  console.log('Server running on port 3000');
 });

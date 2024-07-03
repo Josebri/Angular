@@ -1,6 +1,6 @@
 <div>
   <h2>Login</h2>
-  <form (submit)="login($event)">
+  <form (submit)="login()">
     <label for="usernameOrEmail">Username or Email:</label>
     <input type="text" id="usernameOrEmail" name="usernameOrEmail" required>
 
@@ -10,6 +10,7 @@
     <button type="submit">Login</button>
     <button type="button" (click)="goToRegister()">Register</button>
     <button type="button" (click)="goToRecoverPassword()">Recover Password</button>
+    <button type="button" (click)="goToUnlockUser()">Unlock User</button>
   </form>
   <div *ngIf="errorMessage">{{ errorMessage }}</div>
 </div>
