@@ -27,19 +27,21 @@ export class LoginComponent implements OnInit {
 
     try {
       const response = await this.authService.login(usernameOrEmail, password);
-
       console.log('Debug: Login successful. Response:', response); // Console.log de depuración
 
-      if (response.profile === 'admin') {
-        console.log('Debug: Redirecting to admin panel');
-        this.router.navigate(['/admin']);
-      } else {
-        console.log('Debug: Redirecting to user panel');
-        this.router.navigate(['/user']);
+      if (response.token) {
+        if (response.profile === 'admin') {
+          console.log('Debug: Redirecting to admin panel');
+          this.router.navigate(['/admin']);
+        } else {
+          console.log('Debug: Redirecting to user panel');
+          this.router.navigate(['/user']);
+        }
       }
       this.loginAttempts = 3; // Reset attempts on successful login
     } catch (error: any) {
-      this.errorMessage = error.message;
+      console.error('Error during login:', error);
+      this.errorMessage = 'Login failed. Please try again.';
       this.loginAttempts--;
       if (this.loginAttempts <= 0) {
         this.lockUser();

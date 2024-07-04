@@ -187,8 +187,14 @@ app.post('/reset-password', async (req, res) => {
   }
 });
 
+// Rutas de administración
+const adminRouter = express.Router();
+
+// Middleware de autenticación para rutas de administrador
+adminRouter.use(authenticate);
+
 // Desbloquear usuario
-app.post('/admin/unblock-user', authenticate, async (req, res) => {
+adminRouter.post('/unblock-user', async (req, res) => {
   if (req.user.profile !== 'admin') {
     return res.status(403).json({ error: 'Access denied' });
   }
@@ -207,8 +213,8 @@ app.post('/admin/unblock-user', authenticate, async (req, res) => {
 });
 
 // Añadir nuevo producto
-app.post('/admin/products', authenticate, async (req, res) => {
-  if (!req.user || req.user.profile !== 'admin') {
+adminRouter.post('/products', async (req, res) => {
+  if (req.user.profile !== 'admin') {
     return res.status(403).json({ error: 'Access denied' });
   }
 
@@ -226,7 +232,7 @@ app.post('/admin/products', authenticate, async (req, res) => {
 });
 
 // Obtener todos los productos
-app.get('/admin/products', authenticate, async (req, res) => {
+adminRouter.get('/products', async (req, res) => {
   if (req.user.profile !== 'admin') {
     return res.status(403).json({ error: 'Access denied' });
   }
@@ -240,7 +246,7 @@ app.get('/admin/products', authenticate, async (req, res) => {
 });
 
 // Actualizar producto
-app.put('/admin/products/:id', authenticate, async (req, res) => {
+adminRouter.put('/products/:id', async (req, res) => {
   if (req.user.profile !== 'admin') {
     return res.status(403).json({ error: 'Access denied' });
   }
@@ -260,7 +266,7 @@ app.put('/admin/products/:id', authenticate, async (req, res) => {
 });
 
 // Eliminar producto
-app.delete('/admin/products/:id', authenticate, async (req, res) => {
+adminRouter.delete('/products/:id', async (req, res) => {
   if (req.user.profile !== 'admin') {
     return res.status(403).json({ error: 'Access denied' });
   }
@@ -276,7 +282,7 @@ app.delete('/admin/products/:id', authenticate, async (req, res) => {
 });
 
 // Añadir nueva sede
-app.post('/admin/locations', authenticate, async (req, res) => {
+adminRouter.post('/locations', async (req, res) => {
   if (req.user.profile !== 'admin') {
     return res.status(403).json({ error: 'Access denied' });
   }
@@ -295,7 +301,7 @@ app.post('/admin/locations', authenticate, async (req, res) => {
 });
 
 // Obtener todas las sedes
-app.get('/admin/locations', authenticate, async (req, res) => {
+adminRouter.get('/locations', async (req, res) => {
   if (req.user.profile !== 'admin') {
     return res.status(403).json({ error: 'Access denied' });
   }
@@ -309,7 +315,7 @@ app.get('/admin/locations', authenticate, async (req, res) => {
 });
 
 // Actualizar sede
-app.put('/admin/locations/:id', authenticate, async (req, res) => {
+adminRouter.put('/locations/:id', async (req, res) => {
   if (req.user.profile !== 'admin') {
     return res.status(403).json({ error: 'Access denied' });
   }
@@ -329,7 +335,7 @@ app.put('/admin/locations/:id', authenticate, async (req, res) => {
 });
 
 // Eliminar sede
-app.delete('/admin/locations/:id', authenticate, async (req, res) => {
+adminRouter.delete('/locations/:id', async (req, res) => {
   if (req.user.profile !== 'admin') {
     return res.status(403).json({ error: 'Access denied' });
   }
@@ -344,102 +350,11 @@ app.delete('/admin/locations/:id', authenticate, async (req, res) => {
   }
 });
 
-// Añadir producto al carrito
-app.post('/cart', authenticate, async (req, res) => {
-  const { productId, quantity } = req.body;
-  const userId = req.user.id;
+// Agregar rutas de administración a la aplicación principal
+app.use('/admin', adminRouter);
 
-  try {
-    const cartResult = await pool.query(
-      'SELECT * FROM carts WHERE user_id = $1 AND status = $2',
-      [userId, 'active']
-    );
-
-    let cartId;
-
-    if (cartResult.rows.length === 0) {
-      const newCart = await pool.query(
-        'INSERT INTO carts (user_id, status) VALUES ($1, $2) RETURNING *',
-        [userId, 'active']
-      );
-      cartId = newCart.rows[0].id;
-    } else {
-      cartId = cartResult.rows[0].id;
-    }
-
-    const newItem = await pool.query(
-      'INSERT INTO cart_items (cart_id, product_id, quantity) VALUES ($1, $2, $3) RETURNING *',
-      [cartId, productId, quantity]
-    );
-    res.status(201).json(newItem.rows[0]);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-// Obtener productos del carrito
-app.get('/cart', authenticate, async (req, res) => {
-  const userId = req.user.id;
-
-  try {
-    const cartResult = await pool.query(
-      'SELECT * FROM carts WHERE user_id = $1 AND status = $2',
-      [userId, 'active']
-    );
-
-    if (cartResult.rows.length === 0) {
-      return res.json([]);
-    }
-
-    const cartId = cartResult.rows[0].id;
-    const cartItems = await pool.query(
-      'SELECT * FROM cart_items WHERE cart_id = $1',
-      [cartId]
-    );
-    res.json(cartItems.rows);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Eliminar producto del carrito
-app.delete('/cart/:itemId', authenticate, async (req, res) => {
-  const { itemId } = req.params;
-
-  try {
-    await pool.query('DELETE FROM cart_items WHERE id = $1', [itemId]);
-    res.json({ message: 'Item removed from cart' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-// Procesar pago
-app.post('/checkout', authenticate, async (req, res) => {
-  const userId = req.user.id;
-
-  try {
-    const cartResult = await pool.query(
-      'SELECT * FROM carts WHERE user_id = $1 AND status = $2',
-      [userId, 'active']
-    );
-
-    if (cartResult.rows.length === 0) {
-      return res.status(400).json({ error: 'No active cart found' });
-    }
-
-    const cartId = cartResult.rows[0].id;
-    await pool.query(
-      'UPDATE carts SET status = $1 WHERE id = $2',
-      ['completed', cartId]
-    );
-
-    res.json({ message: 'Payment processed successfully' });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-app.listen(3000, () => {
-  console.log('Server running on port 3000');
+// Iniciar servidor
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
