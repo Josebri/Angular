@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import axios from 'axios';
+import { Router } from '@angular/router';
 
 @Injectable({
   providedIn: 'root'
@@ -7,7 +8,7 @@ import axios from 'axios';
 export class AuthService {
   private baseUrl = 'http://localhost:3000';
 
-  constructor() { }
+  constructor(private router: Router) {}
 
   async login(usernameOrEmail: string, password: string): Promise<any> {
     try {
@@ -59,5 +60,10 @@ export class AuthService {
         throw new Error('An unknown error occurred.');
       }
     }
+  }
+
+  logout() {
+    // Implement logout logic here
+    this.router.navigate(['/login']);
   }
 }

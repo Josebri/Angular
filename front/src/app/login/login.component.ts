@@ -20,9 +20,13 @@ export class LoginComponent implements OnInit {
 
   ngOnInit(): void {}
 
-  async login() {
+  async login(event: Event) {
+    event.preventDefault();  // Prevenir la acción predeterminada del formulario
+    const usernameOrEmail = (document.getElementById('usernameOrEmail') as HTMLInputElement).value;
+    const password = (document.getElementById('password') as HTMLInputElement).value;
+
     try {
-      const response = await this.authService.login(this.usernameOrEmail, this.password);
+      const response = await this.authService.login(usernameOrEmail, password);
 
       console.log('Debug: Login successful. Response:', response); // Console.log de depuración
 
