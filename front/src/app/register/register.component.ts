@@ -9,7 +9,7 @@ import { DataService } from '../services/data.service';
   templateUrl: './register.component.html',
   styleUrls: ['./register.component.css'],
   standalone: true,
-  imports: [RouterModule, ReactiveFormsModule, CommonModule]
+  imports: [ReactiveFormsModule, CommonModule, RouterModule]
 })
 export class RegisterComponent {
   registerForm: FormGroup;
@@ -20,23 +20,25 @@ export class RegisterComponent {
     private dataService: DataService
   ) {
     this.registerForm = this.fb.group({
-      username: ['', Validators.required],
-      password: ['', Validators.required],
+      username: ['', [Validators.required, Validators.minLength(4)]],
+      password: ['', [Validators.required, Validators.minLength(8)]],
       email: ['', [Validators.required, Validators.email]],
       phone: [''],
       profile: ['user']
     });
   }
 
-  async onSubmit(): Promise<void> {
+  onSubmit(): void {
     if (this.registerForm.valid) {
-      try {
-        const response = await this.dataService.register(this.registerForm.value);
-        console.log('Registration successful', response);
-        this.router.navigate(['/login']);
-      } catch (error) {
-        console.error('Registration failed', error);
-      }
+      this.dataService.register(this.registerForm.value).subscribe(
+        response => {
+          console.log('Registration successful', response);
+          this.router.navigate(['/login']);
+        },
+        error => {
+          console.error('Registration failed', error);
+        }
+      );
     }
   }
 }

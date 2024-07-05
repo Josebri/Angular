@@ -1,205 +1,101 @@
 import { Injectable } from '@angular/core';
-import axios from 'axios';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
 })
 export class DataService {
+  private baseUrl = 'http://localhost:3000';
 
-  private baseUrl = 'http://localhost:3000'; // Asegúrate de que la URL base esté correcta
+  constructor(private http: HttpClient) { }
 
-  constructor() { }
-
-  private getAuthHeaders() {
+  private getAuthHeaders(): HttpHeaders {
     const token = localStorage.getItem('token');
-    return {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    };
+    return new HttpHeaders({
+      Authorization: `Bearer ${token}`
+    });
   }
 
-  async login(username: string, password: string) {
-    const url = `${this.baseUrl}/login`;
-    const body = { usernameOrEmail: username, password: password };
+  register(user: any): Observable<any> {
+    return this.http.post(`${this.baseUrl}/register`, user);
+  }
+  
 
-    try {
-      const response = await axios.post(url, body, { headers: { 'Content-Type': 'application/json' } });
-      return response.data;
-    } catch (error) {
-      this.handleError(error);
-    }
+  login(usernameOrEmail: string, password: string): Observable<any> {
+    return this.http.post(`${this.baseUrl}/login`, { usernameOrEmail, password });
   }
 
-  async register(userData: any) {
-    const url = `${this.baseUrl}/register`;
-
-    try {
-      const response = await axios.post(url, userData, { headers: { 'Content-Type': 'application/json' } });
-      return response.data;
-    } catch (error) {
-      this.handleError(error);
-    }
-  }
-
-  async getProducts() {
-    const url = `${this.baseUrl}/products`;
+  getLocations(): Observable<any> {
     const headers = this.getAuthHeaders();
-
-    try {
-      const response = await axios.get(url, { headers });
-      return response.data;
-    } catch (error) {
-      this.handleError(error);
-    }
+    return this.http.get(`${this.baseUrl}/users/locations`, { headers });
   }
 
-  async getProductById(id: number) {
-    const url = `${this.baseUrl}/products/${id}`;
+  createLocation(location: any): Observable<any> {
     const headers = this.getAuthHeaders();
-
-    try {
-      const response = await axios.get(url, { headers });
-      return response.data;
-    } catch (error) {
-      this.handleError(error);
-    }
+    return this.http.post(`${this.baseUrl}/locations`, location, { headers });
   }
 
-  async createProduct(productData: any) {
-    const url = `${this.baseUrl}/products`;
+  updateLocation(locationId: number, location: any): Observable<any> {
     const headers = this.getAuthHeaders();
-
-    try {
-      const response = await axios.post(url, productData, { headers });
-      return response.data;
-    } catch (error) {
-      this.handleError(error);
-    }
+    return this.http.put(`${this.baseUrl}/locations/${locationId}`, location, { headers });
   }
 
-  async updateProduct(id: number, productData: any) {
-    const url = `${this.baseUrl}/products/${id}`;
+  deleteLocation(locationId: number): Observable<any> {
     const headers = this.getAuthHeaders();
-
-    try {
-      const response = await axios.put(url, productData, { headers });
-      return response.data;
-    } catch (error) {
-      this.handleError(error);
-    }
+    return this.http.delete(`${this.baseUrl}/locations/${locationId}`, { headers });
   }
 
-  async deleteProduct(id: number) {
-    const url = `${this.baseUrl}/products/${id}`;
+  assignProductToLocation(locationId: number, productId: number, quantity: number): Observable<any> {
     const headers = this.getAuthHeaders();
-
-    try {
-      const response = await axios.delete(url, { headers });
-      return response.data;
-    } catch (error) {
-      this.handleError(error);
-    }
+    return this.http.post(`${this.baseUrl}/locations/${locationId}/products/${productId}`, { quantity }, { headers });
   }
 
-  async getProductLocations(userId: number) {
-    const url = `${this.baseUrl}/products/locations/${userId}`;
+  getLocationProducts(locationId: number): Observable<any> {
     const headers = this.getAuthHeaders();
-
-    try {
-      const response = await axios.get(url, { headers });
-      return response.data;
-    } catch (error) {
-      this.handleError(error);
-    }
+    return this.http.get(`${this.baseUrl}/locations/${locationId}/products`, { headers });
   }
 
-  async searchProducts(name: string) {
-    const url = `${this.baseUrl}/search/products?name=${name}`;
+  getProducts(): Observable<any> {
     const headers = this.getAuthHeaders();
-
-    try {
-      const response = await axios.get(url, { headers });
-      return response.data;
-    } catch (error) {
-      this.handleError(error);
-    }
+    return this.http.get(`${this.baseUrl}/products`, { headers });
   }
 
-  async getLocations() {
-    const url = `${this.baseUrl}/locations`;
+  createProduct(product: any): Observable<any> {
     const headers = this.getAuthHeaders();
-
-    try {
-      const response = await axios.get(url, { headers });
-      return response.data;
-    } catch (error) {
-      this.handleError(error);
-    }
+    return this.http.post(`${this.baseUrl}/products`, product, { headers });
   }
 
-  async createLocation(locationData: any) {
-    const url = `${this.baseUrl}/locations`;
+  updateProduct(productId: number, productData: any): Observable<any> {
     const headers = this.getAuthHeaders();
-
-    try {
-      const response = await axios.post(url, locationData, { headers });
-      return response.data;
-    } catch (error) {
-      this.handleError(error);
-    }
+    return this.http.put(`${this.baseUrl}/products/${productId}`, productData, { headers });
   }
+  
 
-  async updateLocation(id: number, locationData: any) {
-    const url = `${this.baseUrl}/locations/${id}`;
+  deleteProduct(productId: number): Observable<any> {
     const headers = this.getAuthHeaders();
-
-    try {
-      const response = await axios.put(url, locationData, { headers });
-      return response.data;
-    } catch (error) {
-      this.handleError(error);
-    }
+    return this.http.delete(`${this.baseUrl}/products/${productId}`, { headers });
   }
 
-  async deleteLocation(id: number) {
-    const url = `${this.baseUrl}/locations/${id}`;
+  searchProducts(name?: string, brand?: string, location?: string): Observable<any> {
     const headers = this.getAuthHeaders();
-
-    try {
-      const response = await axios.delete(url, { headers });
-      return response.data;
-    } catch (error) {
-      this.handleError(error);
+    let url = `${this.baseUrl}/search/products?`;
+    const params = [];
+    if (name) {
+      params.push(`name=${name}`);
     }
-  }
-
-  async assignProductToLocation(locationId: number, productId: number, quantity: number) {
-    const url = `${this.baseUrl}/locations/${locationId}/products/${productId}`;
-    const headers = this.getAuthHeaders();
-    const body = { quantity };
-
-    try {
-      const response = await axios.post(url, body, { headers });
-      return response.data;
-    } catch (error) {
-      this.handleError(error);
+    if (brand) {
+      params.push(`brand=${brand}`);
     }
-  }
-
-  async getLocationProducts(locationId: number) {
-    const url = `${this.baseUrl}/locations/${locationId}/products`;
-    const headers = this.getAuthHeaders();
-
-    try {
-      const response = await axios.get(url, { headers });
-      return response.data;
-    } catch (error) {
-      this.handleError(error);
+    if (location) {
+      params.push(`location=${location}`);
     }
+    url += params.join('&');
+    return this.http.get(url, { headers });
   }
+  
+  
+  
 
-  private handleError(error: any) {
-    console.error('An error occurred', error);
-    throw new Error(error.response?.data?.message || error.message || 'Unknown error');
-  }
+  
 }

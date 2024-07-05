@@ -22,14 +22,23 @@ export class ProductSearchComponent {
     private router: Router
   ) {
     this.searchForm = this.fb.group({
-      name: ['', Validators.required]
+      searchType: ['name', Validators.required],
+      searchValue: ['', Validators.required]
     });
   }
 
   async onSearch(): Promise<void> {
     if (this.searchForm.valid) {
+      const { searchType, searchValue } = this.searchForm.value;
       try {
-        const data = await this.dataService.searchProducts(this.searchForm.value.name);
+        let data;
+        if (searchType === 'name') {
+          data = await this.dataService.searchProducts(searchValue, '', '').toPromise();
+        } else if (searchType === 'brand') {
+          data = await this.dataService.searchProducts('', searchValue, '').toPromise();
+        } else if (searchType === 'location') {
+          data = await this.dataService.searchProducts('', '', searchValue).toPromise();
+        }
         this.productLocations = data;
         this.searchPerformed = true;
       } catch (error) {

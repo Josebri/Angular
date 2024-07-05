@@ -15,7 +15,6 @@ const routes: Routes = [
       { path: 'locations', component: LocationCrudComponent },
     ]
   },
-  // otras rutas pueden ir aquí
 ];
 
 @NgModule({

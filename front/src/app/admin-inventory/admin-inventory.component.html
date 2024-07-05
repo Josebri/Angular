@@ -1,8 +1,7 @@
 <div class="admin-inventory">
   <button class="btn btn-secondary" (click)="goHome()">Back to Home</button>
   <h2>Admin Inventory</h2>
-
-  <form [formGroup]="productForm" (ngSubmit)="onSave()">
+  <form [formGroup]="productForm" (ngSubmit)="onSubmit()">
     <div class="form-group">
       <label for="name">Name</label>
       <input id="name" formControlName="name" class="form-control" />
@@ -27,12 +26,10 @@
       <label for="price">Price</label>
       <input id="price" formControlName="price" type="number" class="form-control" />
     </div>
-    <button type="submit" class="btn btn-primary">{{ editingProduct ? 'Update' : 'Create' }}</button>
-    <button type="button" class="btn btn-secondary" (click)="productForm.reset()">Cancel</button>
+    <button type="submit" class="btn btn-primary">{{ isEditing ? 'Update' : 'Create' }}</button>
+    <button type="button" class="btn btn-secondary" (click)="resetForm()">Cancel</button>
   </form>
-
   <hr>
-
   <table class="table">
     <thead>
       <tr>
@@ -52,10 +49,10 @@
         <td>{{ product.reorder_quantity }}</td>
         <td><img [src]="product.image" alt="{{ product.name }}" width="50"></td>
         <td>{{ product.supplier }}</td>
-        <td>{{ product.price }}</td>
+        <td>{{ product.price | currency }}</td>
         <td>
-          <button class="btn btn-warning" (click)="onEdit(product)">Edit</button>
-          <button class="btn btn-danger" (click)="onDelete(product.id)">Delete</button>
+          <button class="btn btn-warning" (click)="editProduct(product)">Edit</button>
+          <button class="btn btn-danger" (click)="deleteProduct(product.id)">Delete</button>
         </td>
       </tr>
     </tbody>

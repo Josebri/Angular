@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
-import { DataService } from '../services/data.service';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { DataService } from '../services/data.service';
 import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 
@@ -9,16 +9,17 @@ import { CommonModule } from '@angular/common';
   templateUrl: './admin-inventory.component.html',
   styleUrls: ['./admin-inventory.component.css'],
   standalone: true,
-  imports: [RouterModule, ReactiveFormsModule, CommonModule]
+  imports: [ReactiveFormsModule, CommonModule, RouterModule]
 })
 export class AdminInventoryComponent implements OnInit {
-  products: any[] = [];
   productForm: FormGroup;
-  editingProduct: any = null;
+  products: any[] = [];
+  isEditing = false;
+  currentProductId: number | null = null;
 
   constructor(
-    private dataService: DataService,
     private fb: FormBuilder,
+    private dataService: DataService,
     private router: Router
   ) {
     this.productForm = this.fb.group({
@@ -35,53 +36,67 @@ export class AdminInventoryComponent implements OnInit {
     this.loadProducts();
   }
 
-  async loadProducts(): Promise<void> {
-    try {
-      const data = await this.dataService.getProducts();
-      if (data.message) {
-        console.log(data.message);
-        this.products = []; // No hay productos
+  loadProducts(): void {
+    this.dataService.getProducts().subscribe((data: any) => {
+      this.products = data;
+    });
+  }
+
+  onSubmit(): void {
+    if (this.productForm.valid) {
+      const productData = this.productForm.value;
+      if (this.isEditing && this.currentProductId !== null) {
+        this.dataService.updateProduct(this.currentProductId, productData).subscribe(
+          (updatedProduct) => {
+            this.loadProducts();
+            this.resetForm();
+          },
+          (error) => {
+            console.error('Update product failed', error);
+          }
+        );
       } else {
-        this.products = data;
+        this.dataService.createProduct(productData).subscribe(
+          (newProduct) => {
+            this.products.push(newProduct);
+            this.resetForm();
+          },
+          (error) => {
+            console.error('Create product failed', error);
+          }
+        );
       }
-    } catch (error) {
-      console.error('Failed to load products', error);
     }
   }
 
-  onEdit(product: any): void {
-    this.editingProduct = product;
+  editProduct(product: any): void {
+    this.isEditing = true;
+    this.currentProductId = product.id;
     this.productForm.patchValue(product);
   }
 
-  async onSave(): Promise<void> {
-    if (this.editingProduct) {
-      try {
-        await this.dataService.updateProduct(this.editingProduct.id, this.productForm.value);
-        this.loadProducts();
-        this.editingProduct = null;
-        this.productForm.reset();
-      } catch (error) {
-        console.error('Failed to update product', error);
+  deleteProduct(productId: number): void {
+    this.dataService.deleteProduct(productId).subscribe(
+      () => {
+        this.products = this.products.filter((product) => product.id !== productId);
+      },
+      (error) => {
+        console.error('Delete product failed', error);
       }
-    } else {
-      try {
-        await this.dataService.createProduct(this.productForm.value);
-        this.loadProducts();
-        this.productForm.reset();
-      } catch (error) {
-        console.error('Failed to create product', error);
-      }
-    }
+    );
   }
 
-  async onDelete(id: number): Promise<void> {
-    try {
-      await this.dataService.deleteProduct(id);
-      this.loadProducts();
-    } catch (error) {
-      console.error('Failed to delete product', error);
-    }
+  resetForm(): void {
+    this.isEditing = false;
+    this.currentProductId = null;
+    this.productForm.reset({
+      name: '',
+      brand: '',
+      reorder_quantity: 0,
+      image: '',
+      supplier: '',
+      price: 0
+    });
   }
 
   goHome(): void {

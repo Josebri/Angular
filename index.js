@@ -54,6 +54,7 @@ app.post('/register', async (req, res) => {
   }
 });
 
+
 // Login
 app.post('/login', async (req, res) => {
   const { usernameOrEmail, password } = req.body;
@@ -133,7 +134,7 @@ app.get('/users/locations', authenticate, async (req, res) => {
 // CRUD de productos para el administrador
 app.get('/products', authenticate, async (req, res) => {
   try {
-    const products = await pool.query('SELECT * FROM products');
+    const products = await pool.query('SELECT * FROM products WHERE id_users = $1', [req.user.id]);
     res.status(200).json(products.rows);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -142,7 +143,7 @@ app.get('/products', authenticate, async (req, res) => {
 
 app.get('/products/:id', authenticate, async (req, res) => {
   try {
-    const product = await pool.query('SELECT * FROM products WHERE id = $1', [req.params.id]);
+    const product = await pool.query('SELECT * FROM products WHERE id = $1 AND id_users = $2', [req.params.id, req.user.id]);
     if (product.rows.length === 0) return res.status(404).json({ message: 'Product not found' });
     res.status(200).json(product.rows[0]);
   } catch (error) {
@@ -154,8 +155,8 @@ app.post('/products', authenticate, async (req, res) => {
   const { name, brand, reorder_quantity, image, supplier, price } = req.body;
   try {
     const newProduct = await pool.query(
-      'INSERT INTO products (name, brand, reorder_quantity, image, supplier, price) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [name, brand, reorder_quantity, image, supplier, price]
+      'INSERT INTO products (name, brand, reorder_quantity, image, supplier, price, id_users) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *',
+      [name, brand, reorder_quantity, image, supplier, price, req.user.id]
     );
     res.status(201).json(newProduct.rows[0]);
   } catch (error) {
@@ -167,8 +168,8 @@ app.put('/products/:id', authenticate, async (req, res) => {
   const { name, brand, reorder_quantity, image, supplier, price } = req.body;
   try {
     const updatedProduct = await pool.query(
-      'UPDATE products SET name = $1, brand = $2, reorder_quantity = $3, image = $4, supplier = $5, price = $6 WHERE id = $7 RETURNING *',
-      [name, brand, reorder_quantity, image, supplier, price, req.params.id]
+      'UPDATE products SET name = $1, brand = $2, reorder_quantity = $3, image = $4, supplier = $5, price = $6 WHERE id = $7 AND id_users = $8 RETURNING *',
+      [name, brand, reorder_quantity, image, supplier, price, req.params.id, req.user.id]
     );
     if (updatedProduct.rows.length === 0) return res.status(404).json({ message: 'Product not found' });
     res.status(200).json(updatedProduct.rows[0]);
@@ -179,7 +180,7 @@ app.put('/products/:id', authenticate, async (req, res) => {
 
 app.delete('/products/:id', authenticate, async (req, res) => {
   try {
-    const deletedProduct = await pool.query('DELETE FROM products WHERE id = $1 RETURNING *', [req.params.id]);
+    const deletedProduct = await pool.query('DELETE FROM products WHERE id = $1 AND id_users = $2 RETURNING *', [req.params.id, req.user.id]);
     if (deletedProduct.rows.length === 0) return res.status(404).json({ message: 'Product not found' });
     res.status(204).end();
   } catch (error) {
@@ -190,7 +191,7 @@ app.delete('/products/:id', authenticate, async (req, res) => {
 // CRUD de almacenes
 app.get('/locations', authenticate, async (req, res) => {
   try {
-    const locations = await pool.query('SELECT * FROM locations');
+    const locations = await pool.query('SELECT * FROM locations WHERE id_location IN (SELECT id_location FROM users_locations WHERE id_users = $1)', [req.user.id]);
     res.status(200).json(locations.rows);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -199,7 +200,7 @@ app.get('/locations', authenticate, async (req, res) => {
 
 app.get('/locations/:id', authenticate, async (req, res) => {
   try {
-    const location = await pool.query('SELECT * FROM locations WHERE id_location = $1', [req.params.id]);
+    const location = await pool.query('SELECT * FROM locations WHERE id_location = $1 AND id_location IN (SELECT id_location FROM users_locations WHERE id_users = $2)', [req.params.id, req.user.id]);
     if (location.rows.length === 0) return res.status(404).json({ message: 'Location not found' });
     res.status(200).json(location.rows[0]);
   } catch (error) {
@@ -214,6 +215,10 @@ app.post('/locations', authenticate, async (req, res) => {
       'INSERT INTO locations (name, address) VALUES ($1, $2) RETURNING *',
       [name, address]
     );
+    await pool.query(
+      'INSERT INTO users_locations (id_users, id_location) VALUES ($1, $2)',
+      [req.user.id, newLocation.rows[0].id_location]
+    );
     res.status(201).json(newLocation.rows[0]);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -224,8 +229,8 @@ app.put('/locations/:id', authenticate, async (req, res) => {
   const { name, address } = req.body;
   try {
     const updatedLocation = await pool.query(
-      'UPDATE locations SET name = $1, address = $2 WHERE id_location = $3 RETURNING *',
-      [name, address, req.params.id]
+      'UPDATE locations SET name = $1, address = $2 WHERE id_location = $3 AND id_location IN (SELECT id_location FROM users_locations WHERE id_users = $4) RETURNING *',
+      [name, address, req.params.id, req.user.id]
     );
     if (updatedLocation.rows.length === 0) return res.status(404).json({ message: 'Location not found' });
     res.status(200).json(updatedLocation.rows[0]);
@@ -236,7 +241,7 @@ app.put('/locations/:id', authenticate, async (req, res) => {
 
 app.delete('/locations/:id', authenticate, async (req, res) => {
   try {
-    const deletedLocation = await pool.query('DELETE FROM locations WHERE id_location = $1 RETURNING *', [req.params.id]);
+    const deletedLocation = await pool.query('DELETE FROM locations WHERE id_location = $1 AND id_location IN (SELECT id_location FROM users_locations WHERE id_users = $2) RETURNING *', [req.params.id, req.user.id]);
     if (deletedLocation.rows.length === 0) return res.status(404).json({ message: 'Location not found' });
     res.status(204).end();
   } catch (error) {
@@ -268,8 +273,8 @@ app.get('/locations/:locationId/products', authenticate, async (req, res) => {
     const products = await pool.query(
       `SELECT p.id, p.name, pl.quantity FROM product_locations pl
       JOIN products p ON pl.product_id = p.id
-      WHERE pl.location_id = $1`,
-      [locationId]
+      WHERE pl.location_id = $1 AND p.id_users = $2`,
+      [locationId, req.user.id]
     );
 
     if (products.rows.length === 0) {
@@ -282,19 +287,34 @@ app.get('/locations/:locationId/products', authenticate, async (req, res) => {
   }
 });
 
-// Ruta para buscar productos por nombre y obtener la información de su ubicación
+// Ruta para buscar productos por nombre, marca o ubicación
 app.get('/search/products', authenticate, async (req, res) => {
-  const { name } = req.query;
+  const { name, brand, location } = req.query;
+
+  let query = `SELECT p.id, p.name, p.brand, pl.quantity, l.name as location_name 
+               FROM products p
+               LEFT JOIN product_locations pl ON p.id = pl.product_id
+               LEFT JOIN locations l ON pl.location_id = l.id_location
+               WHERE p.id_users = $1`;
+  const queryParams = [req.user.id];
+
+  if (name) {
+    query += ` AND p.name ILIKE $2`;
+    queryParams.push(`%${name}%`);
+  }
   
+  if (brand) {
+    query += ` AND p.brand ILIKE $${queryParams.length + 1}`;
+    queryParams.push(`%${brand}%`);
+  }
+  
+  if (location) {
+    query += ` AND l.name ILIKE $${queryParams.length + 1}`;
+    queryParams.push(`%${location}%`);
+  }
+
   try {
-    const products = await pool.query(
-      `SELECT p.id, p.name, pl.quantity, l.name as location_name 
-      FROM products p
-      JOIN product_locations pl ON p.id = pl.product_id
-      JOIN locations l ON pl.location_id = l.id_location
-      WHERE p.name ILIKE $1`,
-      [`%${name}%`]
-    );
+    const products = await pool.query(query, queryParams);
 
     if (products.rows.length === 0) {
       return res.status(200).json({ message: 'No products found' });

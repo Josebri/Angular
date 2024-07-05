@@ -43,7 +43,7 @@ export class LocationManagementComponent implements OnInit {
 
   async loadLocations(): Promise<void> {
     try {
-      const data = await this.dataService.getLocations();
+      const data = await this.dataService.getLocations().toPromise();
       this.locations = data;
     } catch (error) {
       console.error('Failed to load locations', error);
@@ -52,7 +52,7 @@ export class LocationManagementComponent implements OnInit {
 
   async loadProducts(): Promise<void> {
     try {
-      const data = await this.dataService.getProducts();
+      const data = await this.dataService.getProducts().toPromise();
       this.products = data;
     } catch (error) {
       console.error('Failed to load products', error);
@@ -67,7 +67,7 @@ export class LocationManagementComponent implements OnInit {
   async onSave(): Promise<void> {
     if (this.editingLocation) {
       try {
-        await this.dataService.updateLocation(this.editingLocation.id_location, this.locationForm.value);
+        await this.dataService.updateLocation(this.editingLocation.id_location, this.locationForm.value).toPromise();
         this.loadLocations();
         this.editingLocation = null;
         this.locationForm.reset();
@@ -76,7 +76,7 @@ export class LocationManagementComponent implements OnInit {
       }
     } else {
       try {
-        await this.dataService.createLocation(this.locationForm.value);
+        await this.dataService.createLocation(this.locationForm.value).toPromise();
         this.loadLocations();
         this.locationForm.reset();
       } catch (error) {
@@ -87,7 +87,7 @@ export class LocationManagementComponent implements OnInit {
 
   async onDelete(id: number): Promise<void> {
     try {
-      await this.dataService.deleteLocation(id);
+      await this.dataService.deleteLocation(id).toPromise();
       this.loadLocations();
     } catch (error) {
       console.error('Failed to delete location', error);
@@ -98,7 +98,7 @@ export class LocationManagementComponent implements OnInit {
     if (this.assignForm.valid) {
       const { locationId, productId, quantity } = this.assignForm.value;
       try {
-        await this.dataService.assignProductToLocation(locationId, productId, quantity);
+        await this.dataService.assignProductToLocation(locationId, productId, quantity).toPromise();
         this.loadLocationProducts(locationId);
       } catch (error) {
         console.error('Failed to assign product to location', error);
@@ -108,7 +108,7 @@ export class LocationManagementComponent implements OnInit {
 
   async loadLocationProducts(locationId: number): Promise<void> {
     try {
-      const data = await this.dataService.getLocationProducts(locationId);
+      const data = await this.dataService.getLocationProducts(locationId).toPromise();
       const location = this.locations.find(loc => loc.id_location === locationId);
       if (location) {
         location.products = data;
