@@ -4,13 +4,12 @@ import { Injectable } from '@angular/core';
   providedIn: 'root'
 })
 export class AuthService {
-
   private baseUrl = 'http://localhost:3000';  // Asegúrate de que esta URL sea correcta
 
   constructor() {}
 
   async register(user: any): Promise<any> {
-    console.log('Register user data:', user);  // Log the user data to debug
+    console.log('Register user data:', user);
 
     const response = await fetch(`${this.baseUrl}/register`, {
       method: 'POST',
@@ -20,11 +19,11 @@ export class AuthService {
       body: JSON.stringify(user)
     });
 
-    console.log('Register response:', response);  // Log the response to debug
+    console.log('Register response:', response);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Error text:', errorText);  // Log error text for more details
+      console.error('Error text:', errorText);
       throw new Error('Registration failed: ' + errorText);
     }
     return response.json();
@@ -32,7 +31,7 @@ export class AuthService {
 
   async login(usernameOrEmail: string, password: string): Promise<any> {
     const loginData = { usernameOrEmail, password };
-    console.log('Login data:', loginData);  // Log the login data to debug
+    console.log('Login data:', loginData);
 
     const response = await fetch(`${this.baseUrl}/login`, {
       method: 'POST',
@@ -42,11 +41,11 @@ export class AuthService {
       body: JSON.stringify(loginData)
     });
 
-    console.log('Login response:', response);  // Log the response to debug
+    console.log('Login response:', response);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Error text:', errorText);  // Log error text for more details
+      console.error('Error text:', errorText);
       throw new Error('Login failed: ' + errorText);
     }
     return response.json();
