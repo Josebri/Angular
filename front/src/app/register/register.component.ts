@@ -17,15 +17,13 @@ export class RegisterComponent {
     const target = event.target as HTMLFormElement;
     const username = (target.querySelector('#username') as HTMLInputElement).value;
     const email = (target.querySelector('#email') as HTMLInputElement).value;
-    const phone = (target.querySelector('#phone') as HTMLInputElement).value;
     const password = (target.querySelector('#password') as HTMLInputElement).value;
-    const profile = (target.querySelector('#profile') as HTMLInputElement).value;
 
-    const user = { username, email, phone, password, profile };
+    const user = { username, email, password };
 
     try {
       await this.authService.register(user);
-      this.router.navigate(['/login']);
+      this.router.navigate(['/login']); // Redirigir al login después del registro exitoso
     } catch (error: any) {
       if (error instanceof Error) {
         this.errorMessage = error.message;

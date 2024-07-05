@@ -9,8 +9,6 @@
 
     <button type="submit">Login</button>
     <button type="button" (click)="goToRegister()">Register</button>
-    <button type="button" (click)="goToRecoverPassword()">Recover Password</button>
-    <button type="button" (click)="goToUnlockUser()">Unlock User</button>
   </form>
-  <div *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div *ngIf="errorMessage" class="error">{{ errorMessage }}</div>
 </div>

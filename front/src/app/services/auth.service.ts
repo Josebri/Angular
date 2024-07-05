@@ -1,69 +1,54 @@
 import { Injectable } from '@angular/core';
-import axios from 'axios';
-import { Router } from '@angular/router';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private baseUrl = 'http://localhost:3000';
 
-  constructor(private router: Router) {}
+  private baseUrl = 'http://localhost:3000';  // Asegúrate de que esta URL sea correcta
 
-  async login(usernameOrEmail: string, password: string): Promise<any> {
-    try {
-      const response = await axios.post(`${this.baseUrl}/login`, { usernameOrEmail, password });
-      return response.data;
-    } catch (error: any) {
-      if (error.response && error.response.data) {
-        throw new Error(error.response.data.message);
-      } else {
-        throw new Error('An unknown error occurred.');
-      }
-    }
-  }
+  constructor() {}
 
   async register(user: any): Promise<any> {
-    try {
-      const response = await axios.post(`${this.baseUrl}/register`, user);
-      return response.data;
-    } catch (error: any) {
-      if (error.response && error.response.data) {
-        throw new Error(error.response.data.message);
-      } else {
-        throw new Error('An unknown error occurred.');
-      }
+    console.log('Register user data:', user);  // Log the user data to debug
+
+    const response = await fetch(`${this.baseUrl}/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(user)
+    });
+
+    console.log('Register response:', response);  // Log the response to debug
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error text:', errorText);  // Log error text for more details
+      throw new Error('Registration failed: ' + errorText);
     }
+    return response.json();
   }
 
-  async recoverPassword(email: string): Promise<any> {
-    try {
-      const response = await axios.post(`${this.baseUrl}/recover-password`, { email });
-      return response.data;
-    } catch (error: any) {
-      if (error.response && error.response.data) {
-        throw new Error(error.response.data.message);
-      } else {
-        throw new Error('An unknown error occurred.');
-      }
-    }
-  }
+  async login(usernameOrEmail: string, password: string): Promise<any> {
+    const loginData = { usernameOrEmail, password };
+    console.log('Login data:', loginData);  // Log the login data to debug
 
-  async unlockUser(token: string): Promise<any> {
-    try {
-      const response = await axios.post(`${this.baseUrl}/unlock-user`, { token });
-      return response.data;
-    } catch (error: any) {
-      if (error.response && error.response.data) {
-        throw new Error(error.response.data.message);
-      } else {
-        throw new Error('An unknown error occurred.');
-      }
-    }
-  }
+    const response = await fetch(`${this.baseUrl}/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(loginData)
+    });
 
-  logout() {
-    // Implement logout logic here
-    this.router.navigate(['/login']);
+    console.log('Login response:', response);  // Log the response to debug
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error text:', errorText);  // Log error text for more details
+      throw new Error('Login failed: ' + errorText);
+    }
+    return response.json();
   }
 }

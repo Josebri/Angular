@@ -11,7 +11,6 @@ export class LoginComponent implements OnInit {
   usernameOrEmail: string = '';
   password: string = '';
   errorMessage: string = '';
-  loginAttempts: number = 3;
 
   constructor(
     private authService: AuthService,
@@ -27,45 +26,16 @@ export class LoginComponent implements OnInit {
 
     try {
       const response = await this.authService.login(usernameOrEmail, password);
-      console.log('Debug: Login successful. Response:', response); // Console.log de depuración
-
       if (response.token) {
-        if (response.profile === 'admin') {
-          console.log('Debug: Redirecting to admin panel');
-          this.router.navigate(['/admin']);
-        } else {
-          console.log('Debug: Redirecting to user panel');
-          this.router.navigate(['/user']);
-        }
+        this.router.navigate(['/user-inventory']);  // Redirige a la página de inventario del usuario después del login exitoso
       }
-      this.loginAttempts = 3; // Reset attempts on successful login
     } catch (error: any) {
       console.error('Error during login:', error);
       this.errorMessage = 'Login failed. Please try again.';
-      this.loginAttempts--;
-      if (this.loginAttempts <= 0) {
-        this.lockUser();
-      }
     }
   }
 
   goToRegister() {
-    console.log('Debug: Redirecting to register page');
     this.router.navigate(['/register']);
-  }
-
-  goToRecoverPassword() {
-    console.log('Debug: Redirecting to recover password page');
-    this.router.navigate(['/recover-password']);
-  }
-
-  goToUnlockUser() {
-    console.log('Debug: Redirecting to unlock user page');
-    this.router.navigate(['/unlock-user']);
-  }
-
-  lockUser() {
-    alert('User is locked due to too many failed login attempts.');
-    // Implement logic to lock user
   }
 }
