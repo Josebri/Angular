@@ -1,0 +1,21 @@
+<div class="product-locations">
+    <h2>Product Locations for User {{ userId }}</h2>
+  
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Product Name</th>
+          <th>Quantity</th>
+          <th>Location</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let pl of productLocations">
+          <td>{{ pl.name }}</td>
+          <td>{{ pl.quantity }}</td>
+          <td>{{ pl.location_name }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  

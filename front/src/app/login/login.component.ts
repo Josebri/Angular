@@ -1,44 +1,58 @@
-import { Component, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
-import { AuthService } from '../services/auth.service';
+import { Component } from '@angular/core';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { DataService } from '../services/data.service';
 
 @Component({
   selector: 'app-login',
   templateUrl: './login.component.html',
-  styleUrls: ['./login.component.css']
+  styleUrls: ['./login.component.css'],
+  standalone: true,
+  imports: [RouterModule, ReactiveFormsModule, CommonModule]
 })
-export class LoginComponent implements OnInit {
-  usernameOrEmail: string = '';
-  password: string = '';
-  errorMessage: string = '';
+export class LoginComponent {
+  loginForm: FormGroup;
 
   constructor(
-    private authService: AuthService,
-    private router: Router
-  ) {}
+    private fb: FormBuilder,
+    private router: Router,
+    private dataService: DataService
+  ) {
+    this.loginForm = this.fb.group({
+      username: ['', Validators.required],
+      password: ['', Validators.required]
+    });
+  }
 
-  ngOnInit(): void {}
+  async onSubmit(): Promise<void> {
+    if (this.loginForm.valid) {
+      try {
+        const response = await this.dataService.login(
+          this.loginForm.value.username,
+          this.loginForm.value.password
+        );
 
-  async login(event: Event) {
-    event.preventDefault();
-    const usernameOrEmail = (document.getElementById('usernameOrEmail') as HTMLInputElement).value;
-    const password = (document.getElementById('password') as HTMLInputElement).value;
+        console.log('Login successful', response);
 
-    try {
-      const response = await this.authService.login(usernameOrEmail, password);
-      if (response && response.token) {
-        localStorage.setItem('token', response.token); // Guarda el token si es necesario
-        this.router.navigate(['/user-dashboard']); // Redirige a la página de inventario del usuario después del login exitoso
-      } else {
-        this.errorMessage = 'Login failed. Please try again.';
+        // Guardar el token en el almacenamiento local
+        localStorage.setItem('token', response.token);
+
+        // Verificar el perfil del usuario
+        if (response.profile === 'admin') {
+          // Redirigir a la ruta de administrador
+          this.router.navigate(['/admin']);
+        } else {
+          // Redirigir a otra ruta para usuarios normales
+          this.router.navigate(['/home']); // Ajusta según tus necesidades
+        }
+      } catch (error) {
+        console.error('Login failed', error);
       }
-    } catch (error: any) {
-      console.error('Error during login:', error);
-      this.errorMessage = 'Login failed. Please try again.';
     }
   }
 
-  goToRegister() {
+  redirectToRegister(): void {
     this.router.navigate(['/register']);
   }
 }

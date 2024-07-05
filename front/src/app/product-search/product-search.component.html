@@ -1,0 +1,35 @@
+<div class="product-search">
+    <button class="btn btn-secondary" (click)="goHome()">Back to Home</button>
+    <h2>Search Products</h2>
+  
+    <form [formGroup]="searchForm" (ngSubmit)="onSearch()">
+      <div class="form-group">
+        <label for="name">Product Name</label>
+        <input id="name" formControlName="name" class="form-control" placeholder="Enter product name" />
+      </div>
+      <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+  
+    <hr *ngIf="searchPerformed">
+  
+    <div *ngIf="searchPerformed">
+      <h3 *ngIf="productLocations.length === 0">No products found.</h3>
+      <table *ngIf="productLocations.length > 0" class="table">
+        <thead>
+          <tr>
+            <th>Product Name</th>
+            <th>Quantity</th>
+            <th>Location</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let pl of productLocations">
+            <td>{{ pl.name }}</td>
+            <td>{{ pl.quantity }}</td>
+            <td>{{ pl.location_name }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  

@@ -1,39 +1,42 @@
 import { Component } from '@angular/core';
-import { Router } from '@angular/router';
-import { AuthService } from '../services/auth.service';
+import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
+import { CommonModule } from '@angular/common';
+import { DataService } from '../services/data.service';
 
 @Component({
   selector: 'app-register',
   templateUrl: './register.component.html',
-  styleUrls: ['./register.component.css']
+  styleUrls: ['./register.component.css'],
+  standalone: true,
+  imports: [RouterModule, ReactiveFormsModule, CommonModule]
 })
 export class RegisterComponent {
-  errorMessage: string = '';
+  registerForm: FormGroup;
 
-  constructor(private authService: AuthService, private router: Router) {}
-
-  async register(event: Event) {
-    event.preventDefault();
-    const target = event.target as HTMLFormElement;
-    const username = (target.querySelector('#username') as HTMLInputElement).value;
-    const email = (target.querySelector('#email') as HTMLInputElement).value;
-    const password = (target.querySelector('#password') as HTMLInputElement).value;
-
-    const user = { username, email, password };
-
-    try {
-      await this.authService.register(user);
-      this.router.navigate(['/login']); // Redirigir al login después del registro exitoso
-    } catch (error: any) {
-      if (error instanceof Error) {
-        this.errorMessage = error.message;
-      } else {
-        this.errorMessage = 'Registration failed. Please try again.';
-      }
-    }
+  constructor(
+    private fb: FormBuilder,
+    private router: Router,
+    private dataService: DataService
+  ) {
+    this.registerForm = this.fb.group({
+      username: ['', Validators.required],
+      password: ['', Validators.required],
+      email: ['', [Validators.required, Validators.email]],
+      phone: [''],
+      profile: ['user']
+    });
   }
 
-  goToLogin() {
-    this.router.navigate(['/login']);
+  async onSubmit(): Promise<void> {
+    if (this.registerForm.valid) {
+      try {
+        const response = await this.dataService.register(this.registerForm.value);
+        console.log('Registration successful', response);
+        this.router.navigate(['/login']);
+      } catch (error) {
+        console.error('Registration failed', error);
+      }
+    }
   }
 }

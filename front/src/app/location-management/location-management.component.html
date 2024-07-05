@@ -1,0 +1,75 @@
+<div class="location-management">
+    <button class="btn btn-secondary" (click)="goHome()">Back to Home</button>
+    <h2>Manage Locations</h2>
+  
+    <form [formGroup]="locationForm" (ngSubmit)="onSave()">
+      <div class="form-group">
+        <label for="name">Name</label>
+        <input id="name" formControlName="name" class="form-control" />
+      </div>
+      <div class="form-group">
+        <label for="address">Address</label>
+        <input id="address" formControlName="address" class="form-control" />
+      </div>
+      <button type="submit" class="btn btn-primary">{{ editingLocation ? 'Update' : 'Create' }}</button>
+      <button type="button" class="btn btn-secondary" (click)="locationForm.reset()">Cancel</button>
+    </form>
+  
+    <hr>
+  
+    <h2>Assign Products to Locations</h2>
+  
+    <form [formGroup]="assignForm" (ngSubmit)="onAssign()">
+      <div class="form-group">
+        <label for="locationId">Location</label>
+        <select id="locationId" formControlName="locationId" class="form-control">
+          <option *ngFor="let loc of locations" [value]="loc.id_location">{{ loc.name }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="productId">Product</label>
+        <select id="productId" formControlName="productId" class="form-control">
+          <option *ngFor="let prod of products" [value]="prod.id">{{ prod.name }}</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="quantity">Quantity</label>
+        <input id="quantity" formControlName="quantity" type="number" class="form-control" />
+      </div>
+      <button type="submit" class="btn btn-primary">Assign</button>
+    </form>
+  
+    <hr>
+  
+    <h2>Locations</h2>
+  
+    <ul>
+      <li *ngFor="let loc of locations">
+        {{ loc.name }} - {{ loc.address }}
+        <button class="btn btn-warning" (click)="onEdit(loc)">Edit</button>
+        <button class="btn btn-danger" (click)="onDelete(loc.id_location)">Delete</button>
+        <button class="btn btn-info" (click)="loadLocationProducts(loc.id_location)">View Products</button>
+      </li>
+    </ul>
+  
+    <hr>
+  
+    <div *ngIf="selectedLocation">
+      <h3>Products in {{ selectedLocation.name }}</h3>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Product Name</th>
+            <th>Quantity</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let prod of selectedLocation.products">
+            <td>{{ prod.name }}</td>
+            <td>{{ prod.quantity }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  

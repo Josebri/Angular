@@ -1,10 +1,11 @@
 const express = require('express');
-const cors = require('cors');
+const bodyParser = require('body-parser');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
+const cors = require('cors');
 const { Pool } = require('pg');
-
 const app = express();
+
 const pool = new Pool({
   user: 'postgres',
   host: 'localhost',
@@ -13,211 +14,301 @@ const pool = new Pool({
   port: 5432,
 });
 
+const SECRET_KEY = 'your_secret_key';
+
 app.use(cors());
-app.use(express.json());
+app.use(bodyParser.json());
 
-const jwtSecret = 'tu_secreto';
+// Middleware de autenticación
+const authenticate = (req, res, next) => {
+  const authHeader = req.headers.authorization;
 
+  if (authHeader) {
+    const token = authHeader.split(' ')[1];
+
+    jwt.verify(token, SECRET_KEY, (err, user) => {
+      if (err) {
+        return res.status(403).json({ message: 'Token verification failed', error: err.message });
+      }
+      req.user = user;
+      next();
+    });
+  } else {
+    res.status(401).json({ message: 'Authorization header not provided' });
+  }
+};
+
+// Registro de usuarios
 app.post('/register', async (req, res) => {
-  const { username, email, password } = req.body;
+  const { username, password, email, phone, profile } = req.body;
   const hashedPassword = await bcrypt.hash(password, 10);
 
   try {
-    const result = await pool.query(
-      'INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING *',
-      [username, email, hashedPassword]
+    const newUser = await pool.query(
+      'INSERT INTO users (username, password, email, phone, profile) VALUES ($1, $2, $3, $4, $5) RETURNING *',
+      [username, hashedPassword, email, phone, profile]
     );
-    res.status(201).json(result.rows[0]);
+    res.status(201).json(newUser.rows[0]);
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
 });
 
+// Login
 app.post('/login', async (req, res) => {
   const { usernameOrEmail, password } = req.body;
 
   try {
-    const result = await pool.query(
+    const userResult = await pool.query(
       'SELECT * FROM users WHERE username = $1 OR email = $2',
       [usernameOrEmail, usernameOrEmail]
     );
 
-    if (result.rows.length === 0) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+    if (userResult.rows.length === 0) {
+      return res.status(400).json({ error: 'User not found' });
     }
 
-    const user = result.rows[0];
-    const passwordMatch = await bcrypt.compare(password, user.password);
+    const user = userResult.rows[0];
 
-    if (!passwordMatch) {
-      return res.status(401).json({ error: 'Invalid credentials' });
+    if (user.is_blocked) {
+      return res.status(403).json({ error: 'User is blocked' });
     }
 
-    const token = jwt.sign({ id: user.id, username: user.username }, jwtSecret, { expiresIn: '1h' });
+    const validPassword = await bcrypt.compare(password, user.password);
+
+    if (!validPassword) {
+      await pool.query(
+        'UPDATE users SET attempts = attempts - 1 WHERE id_users = $1',
+        [user.id_users]
+      );
+
+      const updatedUser = await pool.query(
+        'SELECT * FROM users WHERE id_users = $1',
+        [user.id_users]
+      );
+
+      if (updatedUser.rows[0].attempts === 0) {
+        await pool.query(
+          'UPDATE users SET is_blocked = TRUE WHERE id_users = $1',
+          [user.id_users]
+        );
+      }
+
+      return res.status(403).json({ error: 'Invalid password' });
+    }
+
+    await pool.query(
+      'UPDATE users SET attempts = 3 WHERE id_users = $1',
+      [user.id_users]
+    );
+
+    const token = jwt.sign(
+      { id: user.id_users, username: user.username, profile: user.profile },
+      SECRET_KEY,
+      { expiresIn: '1h' }
+    );
+
     res.json({ token });
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
-// Rutas de productos
-app.get('/products', async (req, res) => {
+// Obtener sedes del usuario
+app.get('/users/locations', authenticate, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM products');
-    res.json(result.rows);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-app.post('/products', async (req, res) => {
-  const { name, description, price, brand } = req.body;
-
-  try {
-    const result = await pool.query(
-      'INSERT INTO products (name, description, price, brand) VALUES ($1, $2, $3, $4) RETURNING *',
-      [name, description, price, brand]
+    const userId = req.user.id;
+    const locations = await pool.query(
+      'SELECT l.id_location, l.name, l.address FROM users_locations ul ' +
+      'JOIN locations l ON ul.id_location = l.id_location ' +
+      'WHERE ul.id_users = $1',
+      [userId]
     );
-    res.status(201).json(result.rows[0]);
+    res.status(200).json(locations.rows);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
-app.put('/products/:id', async (req, res) => {
-  const { id } = req.params;
-  const { name, description, price, brand } = req.body;
-
+// CRUD de productos para el administrador
+app.get('/products', authenticate, async (req, res) => {
   try {
-    const result = await pool.query(
-      'UPDATE products SET name = $1, description = $2, price = $3, brand = $4 WHERE id = $5 RETURNING *',
-      [name, description, price, brand, id]
+    const products = await pool.query('SELECT * FROM products');
+    res.status(200).json(products.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/products/:id', authenticate, async (req, res) => {
+  try {
+    const product = await pool.query('SELECT * FROM products WHERE id = $1', [req.params.id]);
+    if (product.rows.length === 0) return res.status(404).json({ message: 'Product not found' });
+    res.status(200).json(product.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/products', authenticate, async (req, res) => {
+  const { name, brand, reorder_quantity, image, supplier, price } = req.body;
+  try {
+    const newProduct = await pool.query(
+      'INSERT INTO products (name, brand, reorder_quantity, image, supplier, price) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+      [name, brand, reorder_quantity, image, supplier, price]
     );
-    res.json(result.rows[0]);
+    res.status(201).json(newProduct.rows[0]);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
-app.delete('/products/:id', async (req, res) => {
-  const { id } = req.params;
-
+app.put('/products/:id', authenticate, async (req, res) => {
+  const { name, brand, reorder_quantity, image, supplier, price } = req.body;
   try {
-    await pool.query('DELETE FROM products WHERE id = $1', [id]);
-    res.status(204).send();
+    const updatedProduct = await pool.query(
+      'UPDATE products SET name = $1, brand = $2, reorder_quantity = $3, image = $4, supplier = $5, price = $6 WHERE id = $7 RETURNING *',
+      [name, brand, reorder_quantity, image, supplier, price, req.params.id]
+    );
+    if (updatedProduct.rows.length === 0) return res.status(404).json({ message: 'Product not found' });
+    res.status(200).json(updatedProduct.rows[0]);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
-// Rutas de ubicaciones
-app.get('/locations', async (req, res) => {
+app.delete('/products/:id', authenticate, async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM locations');
-    res.json(result.rows);
+    const deletedProduct = await pool.query('DELETE FROM products WHERE id = $1 RETURNING *', [req.params.id]);
+    if (deletedProduct.rows.length === 0) return res.status(404).json({ message: 'Product not found' });
+    res.status(204).end();
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
-app.post('/locations', async (req, res) => {
+// CRUD de almacenes
+app.get('/locations', authenticate, async (req, res) => {
+  try {
+    const locations = await pool.query('SELECT * FROM locations');
+    res.status(200).json(locations.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get('/locations/:id', authenticate, async (req, res) => {
+  try {
+    const location = await pool.query('SELECT * FROM locations WHERE id_location = $1', [req.params.id]);
+    if (location.rows.length === 0) return res.status(404).json({ message: 'Location not found' });
+    res.status(200).json(location.rows[0]);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post('/locations', authenticate, async (req, res) => {
   const { name, address } = req.body;
-
   try {
-    const result = await pool.query(
+    const newLocation = await pool.query(
       'INSERT INTO locations (name, address) VALUES ($1, $2) RETURNING *',
       [name, address]
     );
-    res.status(201).json(result.rows[0]);
+    res.status(201).json(newLocation.rows[0]);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
-app.put('/locations/:id', async (req, res) => {
-  const { id } = req.params;
+app.put('/locations/:id', authenticate, async (req, res) => {
   const { name, address } = req.body;
-
   try {
-    const result = await pool.query(
-      'UPDATE locations SET name = $1, address = $2 WHERE id = $3 RETURNING *',
-      [name, address, id]
+    const updatedLocation = await pool.query(
+      'UPDATE locations SET name = $1, address = $2 WHERE id_location = $3 RETURNING *',
+      [name, address, req.params.id]
     );
-    res.json(result.rows[0]);
+    if (updatedLocation.rows.length === 0) return res.status(404).json({ message: 'Location not found' });
+    res.status(200).json(updatedLocation.rows[0]);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
-app.delete('/locations/:id', async (req, res) => {
-  const { id } = req.params;
-
+app.delete('/locations/:id', authenticate, async (req, res) => {
   try {
-    await pool.query('DELETE FROM locations WHERE id = $1', [id]);
-    res.status(204).send();
+    const deletedLocation = await pool.query('DELETE FROM locations WHERE id_location = $1 RETURNING *', [req.params.id]);
+    if (deletedLocation.rows.length === 0) return res.status(404).json({ message: 'Location not found' });
+    res.status(204).end();
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
-// Rutas de inventario del usuario
-app.get('/user/:userId/inventory', async (req, res) => {
-  const { userId } = req.params;
-
-  try {
-    const result = await pool.query(
-      `SELECT p.*, up.quantity FROM products p
-       JOIN user_products up ON p.id = up.product_id
-       WHERE up.user_id = $1`,
-      [userId]
-    );
-    res.json(result.rows);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-app.post('/user/:userId/inventory', async (req, res) => {
-  const { userId } = req.params;
-  const { productId, quantity } = req.body;
-
-  try {
-    const result = await pool.query(
-      'INSERT INTO user_products (user_id, product_id, quantity) VALUES ($1, $2, $3) RETURNING *',
-      [userId, productId, quantity]
-    );
-    res.status(201).json(result.rows[0]);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-});
-
-app.put('/user/:userId/inventory/:productId', async (req, res) => {
-  const { userId, productId } = req.params;
+// Asignar productos a almacenes
+app.post('/locations/:locationId/products/:productId', authenticate, async (req, res) => {
+  const { locationId, productId } = req.params;
   const { quantity } = req.body;
 
   try {
     const result = await pool.query(
-      'UPDATE user_products SET quantity = $1 WHERE user_id = $2 AND product_id = $3 RETURNING *',
-      [quantity, userId, productId]
+      'INSERT INTO product_locations (product_id, location_id, quantity) VALUES ($1, $2, $3) ON CONFLICT (product_id, location_id) DO UPDATE SET quantity = EXCLUDED.quantity RETURNING *',
+      [productId, locationId, quantity]
     );
-    res.json(result.rows[0]);
+    res.status(201).json(result.rows[0]);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
-app.delete('/user/:userId/inventory/:productId', async (req, res) => {
-  const { userId, productId } = req.params;
+// Obtener cantidad de productos por almacén
+app.get('/locations/:locationId/products', authenticate, async (req, res) => {
+  const { locationId } = req.params;
 
   try {
-    await pool.query('DELETE FROM user_products WHERE user_id = $1 AND product_id = $2', [userId, productId]);
-    res.status(204).send();
+    const products = await pool.query(
+      `SELECT p.id, p.name, pl.quantity FROM product_locations pl
+      JOIN products p ON pl.product_id = p.id
+      WHERE pl.location_id = $1`,
+      [locationId]
+    );
+
+    if (products.rows.length === 0) {
+      return res.status(200).json({ message: 'No products found in this location' });
+    }
+
+    res.status(200).json(products.rows);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    res.status(500).json({ error: error.message });
   }
 });
 
-app.listen(3000, () => {
-  console.log('Server running on port 3000');
+// Ruta para buscar productos por nombre y obtener la información de su ubicación
+app.get('/search/products', authenticate, async (req, res) => {
+  const { name } = req.query;
+  
+  try {
+    const products = await pool.query(
+      `SELECT p.id, p.name, pl.quantity, l.name as location_name 
+      FROM products p
+      JOIN product_locations pl ON p.id = pl.product_id
+      JOIN locations l ON pl.location_id = l.id_location
+      WHERE p.name ILIKE $1`,
+      [`%${name}%`]
+    );
+
+    if (products.rows.length === 0) {
+      return res.status(200).json({ message: 'No products found' });
+    }
+
+    res.status(200).json(products.rows);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Inicio del servidor
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });
