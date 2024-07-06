@@ -1,9 +1,18 @@
 <div class="home-container">
-    <h2>Welcome to Inventory Management</h2>
-    <div class="buttons-container">
-      <button class="btn btn-primary" (click)="navigateTo('/locations')">Manage Locations</button>
-      <button class="btn btn-primary" (click)="navigateTo('/search')">Search Products</button>
-      <button class="btn btn-primary" (click)="navigateTo('/admin')">Manage Products</button>
+  <nav class="navbar">
+    <div class="navbar-links">
+      <button class="btn btn-link" (click)="navigateTo('/locations')">Gestionar Ubicaciones</button>
+      <button class="btn btn-link" (click)="navigateTo('/search')">Buscar Productos</button>
+      <button class="btn btn-link" (click)="navigateTo('/admin')">Gestionar Productos</button>
     </div>
+    <button class="btn btn-logout" (click)="logout()">Cerrar Sesión</button>
+  </nav>
+  <div class="welcome-text">
+    <h1 class="changing-text" [innerHTML]="currentText.heading"></h1>
+    <p class="changing-subtext" [innerHTML]="currentText.subtext"></p>
   </div>
-  
+  <div class="arrow-buttons">
+    <button class="arrow-btn left-arrow" (click)="previousText()">&#9664;</button>
+    <button class="arrow-btn right-arrow" (click)="nextText()">&#9654;</button>
+  </div>
+</div>

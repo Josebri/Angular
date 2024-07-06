@@ -1,16 +1,120 @@
+body {
+  font-family: 'Arial', sans-serif;
+  margin: 0;
+  padding: 0;
+  background-color: #fff;
+  color: #000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
 .home-container {
-    text-align: center;
-    margin-top: 50px;
-  }
-  
-  .buttons-container {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-  }
-  
-  .btn {
-    padding: 10px 20px;
-    font-size: 16px;
-  }
-  
+  text-align: center;
+  width: 100%;
+}
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 50px;
+  background-color: #5a5eff;
+  border-radius: 10px;
+  margin-bottom: 50px;
+}
+
+.navbar-links {
+  display: flex;
+  gap: 20px;
+}
+
+.btn {
+  padding: 10px 20px;
+  font-size: 16px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s, transform 0.3s;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  color: white;
+}
+
+.btn-link {
+  background-color: transparent;
+  color: #fff;
+  text-decoration: underline;
+}
+
+.btn-logout {
+  background-color: #dc3545;
+  color: white;
+  border-radius: 15px;
+}
+
+.btn:hover {
+  background-color: #0056b3;
+  transform: scale(1.05);
+}
+
+.btn-link:hover {
+  background-color: transparent;
+  color: #0056b3;
+  cursor: pointer;
+}
+
+.btn-logout:hover {
+  background-color: #c82333;
+  transform: scale(1.05);
+}
+
+.welcome-text {
+  margin-top: 150px;
+  padding: 0 20px;
+}
+
+.welcome-text h1 {
+  font-size: 48px;
+  margin: 20px 0;
+  color: #000;
+}
+
+.welcome-text p {
+  font-size: 24px;
+  color: #000;
+}
+
+.arrow-buttons {
+  display: flex;
+  justify-content: space-between;
+  position: absolute;
+  top: 50%;
+  width: 100%;
+  padding: 0 20px;
+  box-sizing: border-box;
+}
+
+.arrow-btn {
+  background-color: transparent;
+  color: black;
+  border: none;
+  cursor: pointer;
+  font-size: 48px;
+  transition: transform 0.3s;
+}
+
+.arrow-btn:hover {
+  transform: scale(1.1);
+}
+
+.left-arrow {
+  text-align: left;
+}
+
+.right-arrow {
+  text-align: right;
+}
