@@ -33,17 +33,13 @@ export class LoginComponent {
       ).subscribe({
         next: (response) => {
           console.log('Login successful', response);
-
-          // Guardar el token en el almacenamiento local
+          
           localStorage.setItem('token', response.token);
 
-          // Verificar el perfil del usuario
           if (response.profile === 'admin') {
-            // Redirigir a la ruta de administrador
             this.router.navigate(['/admin']);
           } else {
-            // Redirigir a otra ruta para usuarios normales
-            this.router.navigate(['/home']); // Ajusta según tus necesidades
+            this.router.navigate(['/home']);
           }
         },
         error: (error) => {

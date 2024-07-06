@@ -25,7 +25,7 @@ export class HomeComponent implements OnInit {
   ngOnInit(): void {
     setInterval(() => {
       this.nextText();
-    }, 15000); // Cambiar cada 15 segundos
+    }, 15000);
   }
 
   navigateTo(path: string): void {

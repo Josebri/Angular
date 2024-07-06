@@ -19,7 +19,6 @@ const SECRET_KEY = 'your_secret_key';
 app.use(cors());
 app.use(bodyParser.json());
 
-// Middleware de autenticación
 const authenticate = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
@@ -38,7 +37,6 @@ const authenticate = (req, res, next) => {
   }
 };
 
-// Registro de usuarios
 app.post('/register', async (req, res) => {
   const { username, password, email, phone, profile } = req.body;
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -54,8 +52,6 @@ app.post('/register', async (req, res) => {
   }
 });
 
-
-// Login
 app.post('/login', async (req, res) => {
   const { usernameOrEmail, password } = req.body;
 
@@ -115,7 +111,6 @@ app.post('/login', async (req, res) => {
   }
 });
 
-// Obtener sedes del usuario
 app.get('/users/locations', authenticate, async (req, res) => {
   try {
     const userId = req.user.id;
@@ -131,7 +126,6 @@ app.get('/users/locations', authenticate, async (req, res) => {
   }
 });
 
-// CRUD de productos para el administrador
 app.get('/products', authenticate, async (req, res) => {
   try {
     const products = await pool.query('SELECT * FROM products WHERE id_users = $1', [req.user.id]);
@@ -188,7 +182,6 @@ app.delete('/products/:id', authenticate, async (req, res) => {
   }
 });
 
-// CRUD de almacenes
 app.get('/locations', authenticate, async (req, res) => {
   try {
     const locations = await pool.query('SELECT * FROM locations WHERE id_location IN (SELECT id_location FROM users_locations WHERE id_users = $1)', [req.user.id]);
@@ -249,7 +242,6 @@ app.delete('/locations/:id', authenticate, async (req, res) => {
   }
 });
 
-// Asignar productos a almacenes
 app.post('/locations/:locationId/products/:productId', authenticate, async (req, res) => {
   const { locationId, productId } = req.params;
   const { quantity } = req.body;
@@ -265,7 +257,6 @@ app.post('/locations/:locationId/products/:productId', authenticate, async (req,
   }
 });
 
-// Obtener cantidad de productos por almacén
 app.get('/locations/:locationId/products', authenticate, async (req, res) => {
   const { locationId } = req.params;
 
@@ -287,7 +278,6 @@ app.get('/locations/:locationId/products', authenticate, async (req, res) => {
   }
 });
 
-// Ruta para buscar productos por nombre, marca o ubicación
 app.get('/search/products', authenticate, async (req, res) => {
   const { name, brand, location } = req.query;
 
@@ -326,7 +316,6 @@ app.get('/search/products', authenticate, async (req, res) => {
   }
 });
 
-// Inicio del servidor
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, () => {

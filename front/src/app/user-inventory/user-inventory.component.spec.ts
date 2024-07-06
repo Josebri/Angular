@@ -56,7 +56,6 @@ export class UserInventoryComponent {
   }
 
   updateLocation(location: any) {
-    // Simulate API request
     const index = this.locations.findIndex(l => l.id === location.id);
     if (index > -1) {
       this.locations[index] = location;
@@ -64,7 +63,6 @@ export class UserInventoryComponent {
   }
 
   deleteLocation(locationId: number) {
-    // Simulate API request
     this.locations = this.locations.filter(l => l.id !== locationId);
   }
 
