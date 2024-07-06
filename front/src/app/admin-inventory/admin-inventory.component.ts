@@ -26,7 +26,7 @@ export class AdminInventoryComponent implements OnInit {
       name: ['', Validators.required],
       brand: [''],
       reorder_quantity: [0, Validators.required],
-      image: [''],
+      image: ['', Validators.required],
       supplier: [''],
       price: [0, Validators.required]
     });
@@ -97,6 +97,10 @@ export class AdminInventoryComponent implements OnInit {
       supplier: '',
       price: 0
     });
+  }
+
+  getImageUrl(imageName: string): string {
+    return `assets/images/${imageName}`;
   }
 
   goHome(): void {

@@ -15,8 +15,8 @@
       <input id="reorder_quantity" formControlName="reorder_quantity" type="number" class="form-control" />
     </div>
     <div class="form-group">
-      <label for="image">Image URL</label>
-      <input id="image" formControlName="image" class="form-control" />
+      <label for="image">Image Name</label>
+      <input id="image" formControlName="image" class="form-control" placeholder="Enter image name, e.g., iphone11.png" />
     </div>
     <div class="form-group">
       <label for="supplier">Supplier</label>
@@ -47,7 +47,7 @@
         <td>{{ product.name }}</td>
         <td>{{ product.brand }}</td>
         <td>{{ product.reorder_quantity }}</td>
-        <td><img [src]="product.image" alt="{{ product.name }}" width="50"></td>
+        <td><img [src]="getImageUrl(product.image)" alt="{{ product.name }}" width="50"></td>
         <td>{{ product.supplier }}</td>
         <td>{{ product.price | currency }}</td>
         <td>
